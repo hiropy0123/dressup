@@ -2,8 +2,8 @@
 /*
 Plugin Name: DressUp
 Plugin URI:
-Description: 管理画面の整形。WordPressのコアファイル及びプラグインを自動更新します。WordPressGeneratorバージョンを非表示にします。
-Version: 1.0
+Description: WordPress 共通ベース設定。管理画面の整形。WordPressのコアファイル及びプラグインを自動更新します。WordPressGeneratorバージョンを非表示にします。
+Version: 1.0.2
 Author: Hiroki Nakashima
 Author URI:
 License: GPL2
@@ -11,8 +11,8 @@ License: GPL2
 
 
 // 管理画面の編集
-add_filter('manage_posts_columns', 'posts_columns_id', 5);
-add_action('manage_posts_custom_column', 'posts_custom_id_columns', 5, 2);
+// add_filter('manage_posts_columns', 'posts_columns_id', 5);
+// add_action('manage_posts_custom_column', 'posts_custom_id_columns', 5, 2);
 add_filter('manage_pages_columns', 'posts_columns_id', 5);
 add_action('manage_pages_custom_column', 'posts_custom_id_columns', 5, 2);
 
