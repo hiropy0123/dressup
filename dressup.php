@@ -2,43 +2,70 @@
 /*
 Plugin Name: DressUp
 Plugin URI:
-Description: WordPress 共通ベース設定。管理画面の整形。WordPressのコアファイル及びプラグインを自動更新します。WordPressGeneratorバージョンを非表示にします。
+Description: WordPress 共通ベース設定。このプラグインをベースにテーマファイルを構築しているため、このプラグインは無効化・削除しないでください。管理画面の整形。WordPressのコアファイル及びプラグインを自動更新します。WordPressGeneratorバージョンを非表示にします。
 Version: 1.0.2
 Author: Hiroki Nakashima
 Author URI:
 License: GPL2
 */
 
-
-// 管理画面の編集
-// add_filter('manage_posts_columns', 'posts_columns_id', 5);
-// add_action('manage_posts_custom_column', 'posts_custom_id_columns', 5, 2);
-add_filter('manage_pages_columns', 'posts_columns_id', 5);
-add_action('manage_pages_custom_column', 'posts_custom_id_columns', 5, 2);
-
-function posts_columns_id($defaults){
-    $defaults['wps_post_id'] = __('ID');
-    $defaults['slug'] = "スラッグ";
-    return $defaults;
-}
-function posts_custom_id_columns($column_name, $id){
-    if($column_name === 'wps_post_id'){
-      echo $id;
-    }
-    if( $column_name == 'slug' ) {
-        $post = get_post($post_id);
-        $slug = $post->post_name;
-        echo esc_attr($slug);
-    }
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
+
+// Add Slug to body_class
+add_filter( 'body_class', 'add_page_slug_class_name' );
+function add_page_slug_class_name( $classes ) {
+  if ( is_page() ) {
+    $page = get_post( get_the_ID() );
+    $classes[] = $page->post_name;
+  }
+  return $classes;
+}
 // ========================================
 
+// 管理画面の編集
+// 一覧に「サムネイル」「ID」「スラッグ」を追加
+function add_pages_columns($columns) {
+  $columns['postid'] = 'ID';
+  $columns['slug'] = 'スラッグ';
+	$columns['thumbnail'] = 'サムネイル';
+
+  echo '<style type="text/css">
+  .fixed .column-postid {width: 3rem;}
+  .fixed .column-slug {width: 5%;}
+	.fixed .column-thumbnail {width: 50px;}
+  </style>';
+
+  return $columns;
+}
+function add_pages_columns_row($column_name, $post_id) {
+    if ( 'postid' == $column_name ) {
+    echo $post_id;
+  } elseif ( 'slug' == $column_name ) {
+    $slug = get_post($post_id) -> post_name;
+    echo $slug;
+  } elseif ( 'thumbnail' == $column_name ) {
+    $thumb = get_the_post_thumbnail($post_id, array(50, 50), 'thumbnail');
+    echo ( $thumb ) ? $thumb : '－';
+  }
+}
+add_filter( 'manage_pages_columns', 'add_pages_columns' );
+add_action( 'manage_pages_custom_column', 'add_pages_columns_row', 10, 2 );
+
+// ========================================
 // 一覧画面から削除するカラム
-add_filter( 'manage_pages_columns', 'delete_column');
-add_filter( 'manage_posts_columns', 'delete_column');
-function delete_column($columns) {
-    unset($columns['author'],$columns['comments']);
+add_filter( 'manage_pages_columns', 'delete_pages_column');
+add_filter( 'manage_posts_columns', 'delete_posts_column');
+function delete_posts_column($columns) {
+    unset($columns['comments']);
+    return $columns;
+}
+function delete_pages_column($columns) {
+    unset($columns['author']);
+		unset($columns['date']);
+		unset($columns['comments']);
     return $columns;
 }
 
@@ -51,7 +78,6 @@ function add_custom_post_dashboard_widget() {
 	);
 	$output = 'object';
 	$operator = 'and';
-
 	$post_types = get_post_types( $args, $output, $operator );
 	foreach ( $post_types as $post_type ) {
 		$num_posts = wp_count_posts( $post_type->name );
@@ -63,62 +89,35 @@ function add_custom_post_dashboard_widget() {
 		echo '<li class="post-count ' . $post_type->name . '-count">' . $output . '</li>';
 	}
 }
-
 // ========================================
-
 // remove admin menus
 function remove_admin_menus() {
     global $menu;
     unset($menu[25]);       // コメント
 }
 add_action('admin_menu', 'remove_admin_menus');
-
 // ========================================
-
 //管理バーの項目削除
 function remove_bar_menus( $wp_admin_bar ) {
   $wp_admin_bar->remove_menu( 'wp-logo' );
   $wp_admin_bar->remove_menu( 'comments' );
   $wp_admin_bar->remove_menu( 'customize' );
-  // $wp_admin_bar->remove_menu( 'updates' );
+  $wp_admin_bar->remove_menu( 'updates' );
 }
 add_action('admin_bar_menu', 'remove_bar_menus', 201);
 
-
-// ========================================
-
-//スマホ表示分岐
-function is_mobile(){
-    $useragents = array(
-        'iPhone', // iPhone
-        'iPod', // iPod touch
-        'Android.*Mobile', // 1.5+ Android *** Only mobile
-        'Windows.*Phone', // *** Windows Phone
-        'dream', // Pre 1.5 Android
-        'CUPCAKE', // 1.5+ Android
-        'blackberry9500', // Storm
-        'blackberry9530', // Storm
-        'blackberry9520', // Storm v2
-        'blackberry9550', // Storm v2
-        'blackberry9800', // Torch
-        'webOS', // Palm Pre Experimental
-        'incognito', // Other iPhone browser
-        'webmate' // Other iPhone browser
-
-    );
-    $pattern = '/'.implode('|', $useragents).'/i';
-    return preg_match($pattern, $_SERVER['HTTP_USER_AGENT']);
+// 管理画面フッターを変更
+function custom_admin_footer () {
+    echo '';
 }
+add_filter( 'admin_footer_text', 'custom_admin_footer' );
 
-//iPad条件分岐
-function is_ipad() {
-	$is_ipad = (bool) strpos($_SERVER['HTTP_USER_AGENT'],'iPad');
-	if ($is_ipad) {
-		return true;
-	} else {
-		return false;
-	}
+// 管理画面フッターのバージョン番号を削除
+function remove_footer_version() {
+    remove_filter( 'update_footer', 'core_update_footer' );
 }
+add_action( 'admin_menu', 'remove_footer_version' );
+
 
 // remove generator
 remove_action('wp_head','wp_generator');
@@ -134,7 +133,6 @@ function vc_remove_wp_ver_css_js( $src ) {
 }
 add_filter( 'style_loader_src', 'vc_remove_wp_ver_css_js', 9999 );
 add_filter( 'script_loader_src', 'vc_remove_wp_ver_css_js', 9999 );
-
 // auto update
 add_filter( 'allow_major_auto_core_updates', '__return_true' );
 add_filter( 'auto_update_plugin', '__return_true' );
